@@ -1,8 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/instance_manager.dart';
 import 'package:thetrade_finder/Feature/Controller/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -33,9 +34,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) async {
-            if (request.url.startsWith('tel:') ||
-                request.url.startsWith('mailto:')) {
-              await launchUrl(request.url);
+            log("request url is ${request.url}");
+            if (_isSpecialScheme(request.url)) {
+              await _launchUrl(request.url);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -48,6 +49,45 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..loadRequest(
         Uri.parse(widget.webViewUrl),
       );
+  }
+
+  bool _isSpecialScheme(String url) {
+    return url.startsWith('tel:') ||
+        url.startsWith('mailto:') ||
+        url.startsWith('sms:') ||
+        url.startsWith("http") || url.startsWith("https");
+  }
+
+  Future<void> _launchUrl(String url) async {
+    if (url.startsWith("mailto:")) {
+      String email = extractEmail(url);
+      log("hdfgdhfgdfg ${email}");
+      final Uri emailLaunchUri = Uri(
+        scheme: 'mailto',
+        path: email,
+      );
+      launchUrl(emailLaunchUri);
+    } else {
+     if(!url.startsWith("https://thetradefinder.co.uk/")){
+       final Uri uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          throw 'Could not launch $url';
+        }
+     }else{
+      webViewController.loadRequest(Uri.parse(url));
+     }
+    }
+  }
+
+  String extractEmail(String mailtoUrl) {
+    final Uri uri = Uri.parse(mailtoUrl);
+    if (uri.scheme == 'mailto') {
+      return uri.path;
+    } else {
+      throw FormatException('The provided URL is not a mailto link');
+    }
   }
 
   Future<bool> _onWillPop() async {
@@ -104,13 +144,5 @@ class _WebViewScreenState extends State<WebViewScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> launchUrl(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
   }
 }
