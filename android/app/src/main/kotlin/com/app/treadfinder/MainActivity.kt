@@ -1,4 +1,4 @@
-package com.example.thetrade_finder
+package com.app.treadfinder
 
 import io.flutter.embedding.android.FlutterActivity
 
